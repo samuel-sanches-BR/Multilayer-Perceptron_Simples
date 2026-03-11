@@ -215,6 +215,34 @@ layout: null
     <div style="margin-top:28px">
       <button class="btn-primary" id="btn-start">▶ CALCULAR TODOS OS PASSOS</button>
     </div>
+
+    <div style="margin-top:28px">
+      <button class="btn-primary" id="btn-start">▶ CALCULAR TODOS OS PASSOS</button>
+    </div>
+
+    <div id="history-section" style="display: none; margin-top: 32px; padding-top: 24px; border-top: 1px solid var(--border);">
+      <div class="section-label" style="color: var(--orange);">Histórico de Execuções</div>
+      <div class="sec-table">
+        <table style="width: 100%; border-collapse: collapse; font-family: var(--mono); font-size: 0.76rem; text-align: left;">
+          <thead>
+            <tr style="color: var(--muted); border-bottom: 1px solid var(--border);">
+              <th style="padding: 8px;">Entrada</th>
+              <th style="padding: 8px;">Alvo</th>
+              <th style="padding: 8px;">LR</th>
+              <th style="padding: 8px;">Épocas</th>
+              <th style="padding: 8px; color: var(--teal);">Predição ŷ</th>
+              <th style="padding: 8px; color: var(--orange);">Erro MSE</th>
+            </tr>
+          </thead>
+          <tbody id="history-body">
+            </tbody>
+        </table>
+      </div>
+      <button class="reset-link" onclick="clearHistory()" style="margin-top: 12px; float: right;">limpar histórico</button>
+      <div style="clear: both;"></div>
+    </div>
+  </div>
+    
   </div>
 
   <!-- Computing -->
@@ -251,6 +279,7 @@ layout: null
   let _pyodide = null;
   let _steps   = [];
   let _cur     = 0;
+  let _history = [];
 
   // ── Loading helpers ────────────────────────────────────────────────────────
   function stepLoad(id, state) { document.getElementById(id).className = state; }
@@ -313,6 +342,11 @@ layout: null
       _steps = data.steps;
       _cur   = 0;
 
+      if (data.summary) {
+        _history.push(data.summary);
+        updateHistoryUI();
+      }
+
       document.getElementById('computing-card').style.display = 'none';
       document.getElementById('step-card').style.display      = 'block';
       document.getElementById('tot-steps').textContent = _steps.length;
@@ -341,6 +375,39 @@ layout: null
     _steps = []; _cur = 0;
   }
 
+  // ── History ────────────────────────────────────────────────────────────────
+  function updateHistoryUI() {
+    const section = document.getElementById('history-section');
+    const tbody = document.getElementById('history-body');
+    
+    if (_history.length === 0) {
+      section.style.display = 'none';
+      return;
+    }
+    
+    section.style.display = 'block';
+    tbody.innerHTML = '';
+    
+    [..._history].reverse().forEach((run) => {
+      const tr = document.createElement('tr');
+      tr.style.borderBottom = '1px solid rgba(30,45,69,0.5)';
+      tr.innerHTML = `
+        <td style="padding: 8px;">${run.X.toFixed(1)}</td>
+        <td style="padding: 8px;">${run.Y.toFixed(1)}</td>
+        <td style="padding: 8px;">${run.lr.toFixed(2)}</td>
+        <td style="padding: 8px;">${run.epochs}</td>
+        <td style="padding: 8px; color: var(--teal); font-weight: bold;">${run.yp_f.toFixed(5)}</td>
+        <td style="padding: 8px; color: var(--text);">${run.err_f.toFixed(6)}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
+
+  function clearHistory() {
+    _history = [];
+    updateHistoryUI();
+  }
+  
   // ── Dots ───────────────────────────────────────────────────────────────────
   function buildDots() {
     const container = document.getElementById('step-dots');
