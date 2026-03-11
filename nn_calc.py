@@ -354,7 +354,7 @@ def nn_run_all(X_s,Y_s,lr_s,w1_0,w1_1,w2_00,w2_01,w2_10,w2_11,w3_0,w3_1,epochs_s
             ]
         })
 
-        # ── Passo 7: Estado final + Taxonomia ────────────────────────────
+# ── Passo 7: Estado final + Taxonomia ────────────────────────────
         zA_f=X*W1; hA_f=sigmoid(zA_f)
         zB_f=np.dot(hA_f,W2); hB_f=sigmoid(zB_f)
         zY_f=np.dot(hB_f,W3); yp_f=sigmoid(zY_f)
@@ -362,6 +362,15 @@ def nn_run_all(X_s,Y_s,lr_s,w1_0,w1_1,w2_00,w2_01,w2_10,w2_11,w3_0,w3_1,epochs_s
         steps.append({
             "title": f"Estado Final & Taxonomia",
             "sections": [
+                {"type":"subtitle","content":"Resumo das Configurações Iniciais"},
+                {"type":"table","headers":["Parâmetro","Valor Definido"],"rows":[
+                    ["Entrada X", str(X)], ["Alvo y", str(Y)],
+                    ["Taxa de aprendizagem (lr)", str(lr)], ["Épocas", str(epochs)],
+                    ["Pesos Iniciais W1", f"[{w1_0}, {w1_1}]"],
+                    ["Pesos Iniciais W2", f"[[{w2_00}, {w2_01}], [{w2_10}, {w2_11}]]"],
+                    ["Pesos Iniciais W3", f"[{w3_0}, {w3_1}]"],
+                ]},
+                {"type":"subtitle","content":"Resultado Final do Treinamento"},
                 {"type":"img","content": plot_forward(X,hA_f,hB_f,yp_f,W1,W2,W3,f"Época {epochs} — Predição final: {yp_f:.4f}  |  Alvo: {Y}")},
                 {"type":"math","content": r"\hat{y}_{final} = " + f"{yp_f:.6f}" + r"\quad \approx \quad y = " + f"{Y}"},
                 {"type":"math","content": r"E_{final} = " + f"{hist_e[-1]:.8f}"},
@@ -373,7 +382,6 @@ def nn_run_all(X_s,Y_s,lr_s,w1_0,w1_1,w2_00,w2_01,w2_10,w2_11,w3_0,w3_1,epochs_s
         })
 
         return json.dumps({"ok":True,"steps":steps})
-
     except Exception as e:
         import traceback
         return json.dumps({"ok":False,"error":str(e),"tb":traceback.format_exc()})
