@@ -2,549 +2,609 @@
 layout: null
 ---
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Rede Neural — Passo a Passo</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css">
-  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.js"></script>
-  <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    :root {
-      --bg:#0a0e1a; --surface:#111827; --border:#1e2d45;
-      --teal:#00d4aa; --teal-dim:#00896e; --orange:#ff6b35;
-      --text:#e2e8f0; --muted:#64748b;
-      --mono:'Space Mono',monospace; --sans:'DM Sans',sans-serif;
-    }
-    body { font-family:var(--sans); background:var(--bg); color:var(--text); min-height:100vh; padding:40px 20px 80px;
-      background-image:radial-gradient(ellipse 80% 40% at 50% -10%,rgba(0,212,170,.07) 0%,transparent 70%),
-                       radial-gradient(ellipse 50% 30% at 90% 90%,rgba(255,107,53,.05) 0%,transparent 60%); }
-    .wrapper { max-width:860px; margin:0 auto; }
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Demo: Rede Neural MLP — Aprendizado Passo a Passo</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css"/>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/contrib/auto-render.min.js"
+        onload="window._katexReady=true;renderMath()"></script>
+<style>
+:root{
+  --bg:#0a0e1a;--surface:#111827;--surface2:#162032;--border:#1e2d45;
+  --teal:#00d4aa;--teal-dim:#007a63;--orange:#ff6b35;--orange-dim:#8a3200;
+  --purple:#a855f7;--yellow:#eab308;--pink:#ec4899;--blue:#3b82f6;
+  --text:#e2e8f0;--muted:#64748b;--muted2:#475569;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;
+     font-size:15px;line-height:1.65;padding-bottom:60px}
+.wrap{max-width:870px;margin:0 auto;padding:24px 20px}
+h1{font-size:1.6rem;font-weight:700;color:var(--text);margin-bottom:4px}
+.sub{color:var(--muted);font-size:0.88rem;margin-bottom:28px}
 
-    /* Header */
-    header { margin-bottom:36px; border-left:3px solid var(--teal); padding-left:18px; }
-    header .label { font-family:var(--mono); font-size:.7rem; color:var(--teal); letter-spacing:.2em; text-transform:uppercase; margin-bottom:8px; }
-    header h1 { font-family:var(--mono); font-size:clamp(1.3rem,4vw,1.9rem); font-weight:700; line-height:1.2; color:#fff; }
-    header p { margin-top:10px; color:var(--muted); font-size:.92rem; line-height:1.6; max-width:600px; }
-    header .updated { margin-top:14px; font-size:.72rem; color:var(--teal-dim); font-family:var(--mono); }
+/* Cards */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;
+      padding:22px 24px;margin-bottom:18px;overflow:hidden;min-width:0}
+.card-title{font-size:1.05rem;font-weight:700;color:var(--teal);margin-bottom:14px;
+            display:flex;align-items:center;gap:9px}
+.step-num{background:var(--teal);color:#000;border-radius:50%;
+          width:24px;height:24px;display:inline-flex;align-items:center;
+          justify-content:center;font-size:0.75rem;font-weight:800;flex-shrink:0}
+.step-num.orange{background:var(--orange)}
+.step-num.purple{background:var(--purple)}
 
-    /* Card base */
-    .card { background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:28px 32px; margin-bottom:20px; min-width:0; overflow:hidden; }
-    .card-title { font-family:var(--mono); font-size:.7rem; letter-spacing:.18em; text-transform:uppercase; color:var(--teal); margin-bottom:20px; }
+/* Activation selector */
+.act-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px}
+.act-btn{background:var(--surface2);border:1px solid var(--border);border-radius:8px;
+         padding:8px 6px;cursor:pointer;text-align:center;transition:all .2s;color:var(--text)}
+.act-btn:hover{border-color:var(--muted2)}
+.act-btn.active{border-width:2px}
+.act-btn .label{font-size:0.82rem;font-weight:700;margin-bottom:3px}
+.act-btn .formula{font-size:0.7rem;color:var(--muted);font-family:monospace;line-height:1.3}
 
-    /* Loading */
-    #loading-card { text-align:center; }
-    .spinner { width:40px; height:40px; border:3px solid var(--border); border-top-color:var(--teal); border-radius:50%; animation:spin .8s linear infinite; margin:0 auto 20px; }
-    @keyframes spin { to{transform:rotate(360deg)} }
-    #pyodide-steps { list-style:none; text-align:left; max-width:340px; margin:20px auto 0; }
-    #pyodide-steps li { font-family:var(--mono); font-size:.78rem; color:var(--muted); padding:6px 0; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:10px; transition:color .3s; }
-    #pyodide-steps li .dot { width:8px; height:8px; border-radius:50%; background:var(--border); flex-shrink:0; transition:background .3s; }
-    #pyodide-steps li.done  { color:var(--teal); } #pyodide-steps li.done .dot  { background:var(--teal); }
-    #pyodide-steps li.active{ color:var(--text); } #pyodide-steps li.active .dot{ background:var(--orange); animation:pulse 1s infinite; }
-    @keyframes pulse { 0%,100%{opacity:1}50%{opacity:.3} }
-    #load-error { display:none; margin-top:16px; padding:12px 16px; background:rgba(255,107,53,.1); border:1px solid rgba(255,107,53,.4); border-radius:8px; font-family:var(--mono); font-size:.8rem; color:var(--orange); }
+.act-btn.act-sigmoid.active  {border-color:var(--teal);  background:#0a2620}
+.act-btn.act-relu.active     {border-color:var(--orange);background:#1a1208}
+.act-btn.act-tanh.active     {border-color:var(--purple);background:#180d22}
+.act-btn.act-leaky.active    {border-color:var(--yellow);background:#1a1600}
+.act-btn.act-elu.active      {border-color:var(--pink);  background:#1a0c14}
+.act-btn.act-swish.active    {border-color:var(--blue);  background:#0a1222}
 
-    /* Config */
-    #config-card { display:none; }
-    .config-grid { display:grid; grid-template-columns:1fr 1fr; gap:20px; }
-    @media(max-width:580px){ .config-grid{ grid-template-columns:1fr; } }
-    .input-group label { display:flex; justify-content:space-between; font-size:.82rem; font-weight:600; color:var(--muted); margin-bottom:8px; }
-    .input-group label .val { font-family:var(--mono); color:var(--teal); }
-    input[type=range] { -webkit-appearance:none; width:100%; height:4px; background:var(--border); border-radius:2px; outline:none; cursor:pointer; }
-    input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:16px; height:16px; border-radius:50%; background:var(--teal); border:2px solid var(--bg); box-shadow:0 0 8px rgba(0,212,170,.5); }
-    input[type=number] { width:100%; background:#0d1525; border:1px solid var(--border); border-radius:8px; color:var(--text); font-family:var(--mono); font-size:.85rem; padding:8px 12px; outline:none; transition:border-color .2s; }
-    input[type=number]:focus { border-color:var(--teal); }
-    .hint { font-size:.71rem; color:var(--muted); margin-top:5px; line-height:1.4; }
-    .w2-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
-    .section-label { font-family:var(--mono); font-size:.68rem; letter-spacing:.14em; text-transform:uppercase; color:var(--teal-dim); margin-bottom:10px; }
+.act-btn.act-sigmoid .label  {color:var(--teal)}
+.act-btn.act-relu .label     {color:var(--orange)}
+.act-btn.act-tanh .label     {color:var(--purple)}
+.act-btn.act-leaky .label    {color:var(--yellow)}
+.act-btn.act-elu .label      {color:var(--pink)}
+.act-btn.act-swish .label    {color:var(--blue)}
 
-    /* Activation selector — 3×2 grid */
-    .act-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
-    @media(max-width:400px){ .act-grid{ grid-template-columns:repeat(2,1fr); } }
-    .act-btn { padding:9px 8px 8px; background:#0d1525; border:2px solid var(--border); border-radius:10px; color:var(--muted); font-family:var(--mono); font-size:.72rem; cursor:pointer; text-align:center; transition:all .2s; line-height:1.3; }
-    .act-btn:hover { border-color:var(--teal); color:var(--text); }
-    .act-btn.active { border-color:var(--teal); background:rgba(0,212,170,.08); color:var(--teal); font-weight:700; }
-    .act-btn .aname { display:block; font-weight:700; margin-bottom:3px; }
-    .act-btn .aformula { display:block; font-size:.6rem; opacity:.7; }
-    .act-btn .arange  { display:block; font-size:.6rem; margin-top:2px; opacity:.55; }
-    #act-hint { font-size:.71rem; color:var(--muted); margin-top:8px; line-height:1.5; min-height:2.5em; }
+.act-hint{font-size:0.78rem;color:var(--muted);margin-top:6px;min-height:18px}
 
-    .btn-primary { width:100%; padding:15px; background:var(--teal); color:var(--bg); border:none; border-radius:10px; font-family:var(--mono); font-size:.88rem; font-weight:700; letter-spacing:.08em; cursor:pointer; transition:all .2s; margin-top:24px; }
-    .btn-primary:hover:not(:disabled) { background:#00f0c2; box-shadow:0 0 20px rgba(0,212,170,.35); transform:translateY(-1px); }
-    .btn-primary:disabled { background:var(--teal-dim); cursor:not-allowed; }
+/* Config grid */
+.cfg-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+@media(max-width:560px){.cfg-grid{grid-template-columns:1fr}}
+.field-row{margin-bottom:13px}
+.field-row label{display:block;font-size:0.8rem;color:var(--muted);margin-bottom:4px}
+.field-row input[type=range]{width:100%;accent-color:var(--teal)}
+.field-row .val{color:var(--teal);font-weight:700;font-size:0.88rem}
+.field-row input[type=number]{background:var(--surface2);border:1px solid var(--border);
+  border-radius:6px;color:var(--text);padding:5px 8px;font-size:0.85rem;width:90px}
+.w-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:6px}
+.w-label{font-size:0.78rem;color:var(--muted);margin-bottom:3px}
 
-    /* Computing */
-    #computing-card { display:none; text-align:center; }
-    .computing-spinner { width:48px; height:48px; border:3px solid var(--border); border-top-color:var(--orange); border-radius:50%; animation:spin .7s linear infinite; margin:0 auto 20px; }
-    #computing-card p { color:var(--muted); font-family:var(--mono); font-size:.82rem; }
+/* Buttons */
+.btn{padding:10px 22px;border-radius:8px;border:none;cursor:pointer;
+     font-size:0.9rem;font-weight:700;transition:all .18s}
+.btn-primary{background:var(--teal);color:#000}
+.btn-primary:hover{filter:brightness(1.1)}
+.btn-primary:disabled{opacity:.4;cursor:not-allowed}
+.btn-ghost{background:transparent;border:1px solid var(--border);color:var(--muted);
+           font-size:0.82rem}
+.btn-ghost:hover{border-color:var(--muted2);color:var(--text)}
+.btn-skip{background:var(--orange-dim);border:1px solid var(--orange);
+          color:var(--orange);font-size:0.82rem}
+.btn-skip:hover{background:var(--orange);color:#000}
 
-    /* Progress bar */
-    #progress-bar-wrap { display:none; position:sticky; top:0; z-index:100; background:var(--surface); border-bottom:1px solid var(--border); padding:10px 20px; margin:0 -20px 20px; }
-    .progress-inner { max-width:860px; margin:0 auto; display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
-    .progress-track { flex:1; min-width:80px; height:4px; background:var(--border); border-radius:2px; overflow:hidden; }
-    .progress-fill  { height:100%; background:var(--teal); border-radius:2px; transition:width .4s ease; }
-    .progress-label { font-family:var(--mono); font-size:.72rem; color:var(--muted); white-space:nowrap; }
-    .progress-label span { color:var(--teal); }
-    .btn-skip   { padding:6px 12px; background:none; border:1px solid var(--border); border-radius:7px; color:var(--muted); font-family:var(--mono); font-size:.7rem; cursor:pointer; transition:all .2s; white-space:nowrap; }
-    .btn-skip:hover { border-color:var(--orange); color:var(--orange); }
-    .reset-link { font-family:var(--mono); font-size:.72rem; color:var(--muted); background:none; border:none; cursor:pointer; text-decoration:underline; padding:0; }
-    .reset-link:hover { color:var(--orange); }
+/* Progress bar */
+#progress-bar-wrap{position:sticky;top:0;z-index:100;background:var(--bg);
+  border-bottom:1px solid var(--border);padding:10px 0;display:none}
+.prog-inner{max-width:870px;margin:0 auto;padding:0 20px;display:flex;
+            align-items:center;gap:12px;flex-wrap:wrap}
+.prog-track{flex:1;min-width:120px;height:6px;background:var(--border);border-radius:3px;overflow:hidden}
+.prog-fill{height:100%;background:var(--teal);border-radius:3px;transition:width .4s}
+.prog-label{color:var(--muted);font-size:0.8rem;white-space:nowrap}
+.prog-back{color:var(--muted);font-size:0.8rem;cursor:pointer;text-decoration:underline;
+           text-underline-offset:2px;white-space:nowrap}
+.prog-back:hover{color:var(--text)}
 
-    /* Step cards */
-    #steps-container { display:none; }
-    .step-card { background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:28px 32px; margin-bottom:20px; min-width:0; overflow:hidden; animation:slideIn .4s ease forwards; }
-    @keyframes slideIn { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
-    .step-header { display:flex; align-items:center; gap:12px; margin-bottom:16px; padding-bottom:14px; border-bottom:1px solid var(--border); }
-    .step-badge { font-family:var(--mono); font-size:.68rem; color:var(--bg); background:var(--teal); border-radius:20px; padding:3px 10px; flex-shrink:0; }
-    .step-title-text { font-family:var(--mono); font-size:1rem; color:#fff; font-weight:700; }
+/* Step sections */
+.sec-text{color:var(--text);margin:9px 0;line-height:1.7}
+.sec-subtitle{font-size:0.93rem;font-weight:700;color:var(--teal);
+              margin:14px 0 5px;padding-left:10px;border-left:3px solid var(--teal)}
+.sec-math{overflow-x:auto;padding:10px 14px;background:var(--surface2);
+          border-radius:7px;margin:8px 0;font-size:0.97rem}
+.sec-img{margin:12px 0}
+.sec-img img{width:100%;border-radius:8px;display:block}
+.hl-teal{border-left:3px solid var(--teal);background:#0a2018;
+         padding:9px 14px;border-radius:0 7px 7px 0;margin:10px 0;
+         color:var(--text);font-size:0.88rem}
+.hl-orange{border-left:3px solid var(--orange);background:#1a1008;
+           padding:9px 14px;border-radius:0 7px 7px 0;margin:10px 0;
+           color:var(--text);font-size:0.88rem}
+.sec-table{overflow-x:auto;margin:10px 0}
+.sec-table table{width:100%;border-collapse:collapse;font-size:0.82rem}
+.sec-table th{background:var(--surface2);border:1px solid var(--border);
+              padding:6px 10px;color:var(--muted);text-align:left}
+.sec-table td{border:1px solid var(--border);padding:6px 10px}
+.sec-table tr:hover td{background:var(--surface2)}
 
-    /* Sections */
-    .step-content > * + * { margin-top:16px; }
-    .sec-subtitle { font-family:var(--mono); font-size:.82rem; color:var(--teal); margin-top:20px !important; border-left:2px solid var(--teal); padding-left:10px; }
-    .sec-text  { color:var(--muted); font-size:.9rem; line-height:1.7; }
-    .sec-math  { overflow-x:auto; padding:14px 0; max-width:100%; }
-    .sec-img   { max-width:100%; }
-    .sec-img img { width:100%; max-width:100%; height:auto; border-radius:10px; border:1px solid var(--border); display:block; }
-    .sec-highlight { padding:14px 18px; border-radius:10px; font-size:.88rem; line-height:1.6; white-space:pre-line; }
-    .sec-highlight.teal   { background:rgba(0,212,170,.06); border:1px solid rgba(0,212,170,.22); color:var(--teal); }
-    .sec-highlight.orange { background:rgba(255,107,53,.06); border:1px solid rgba(255,107,53,.22); color:var(--orange); }
-    .sec-table { overflow-x:auto; max-width:100%; }
-    .sec-table table { width:100%; border-collapse:collapse; font-family:var(--mono); font-size:.76rem; }
-    .sec-table th { text-align:left; padding:8px 14px; color:var(--muted); border-bottom:1px solid var(--border); font-weight:400; letter-spacing:.08em; }
-    .sec-table td { padding:9px 14px; border-bottom:1px solid rgba(30,45,69,.5); color:var(--text); }
-    .sec-table tr:hover td { background:rgba(255,255,255,.02); }
+/* Step footer */
+.step-footer{display:flex;justify-content:flex-end;align-items:center;
+             gap:10px;margin-top:18px;padding-top:14px;border-top:1px solid var(--border)}
 
-    /* Step footer */
-    .step-footer { margin-top:24px; padding-top:18px; border-top:1px solid var(--border); display:flex; justify-content:flex-end; gap:10px; }
-    .btn-next-step { padding:12px 28px; background:var(--teal); color:var(--bg); border:none; border-radius:8px; font-family:var(--mono); font-size:.85rem; font-weight:700; cursor:pointer; transition:all .2s; }
-    .btn-next-step:hover:not(:disabled) { background:#00f0c2; box-shadow:0 0 16px rgba(0,212,170,.3); transform:translateY(-1px); }
-    .btn-next-step:disabled { background:var(--teal-dim); cursor:not-allowed; }
-    .btn-done { padding:12px 28px; background:none; color:var(--teal); border:1px solid var(--teal); border-radius:8px; font-family:var(--mono); font-size:.85rem; font-weight:700; cursor:pointer; transition:all .2s; }
-    .btn-done:hover { background:rgba(0,212,170,.08); }
+/* Spinner */
+.spinner{width:38px;height:38px;border:3px solid var(--border);
+         border-top-color:var(--teal);border-radius:50%;animation:spin 0.9s linear infinite;
+         margin:0 auto 14px}
+.spinner.orange{border-top-color:var(--orange)}
+@keyframes spin{to{transform:rotate(360deg)}}
 
-    /* History */
-    #history-card { display:none; }
-    .hist-runs { display:flex; flex-direction:column; gap:14px; }
-    .hist-run { border:1px solid var(--border); border-radius:12px; padding:16px 20px; position:relative; }
-    .hist-run.best { border-color:var(--teal); background:rgba(0,212,170,.04); }
-    .hist-run.best::before { content:'★ Melhor erro'; position:absolute; top:-10px; right:14px; font-family:var(--mono); font-size:.65rem; color:var(--bg); background:var(--teal); padding:2px 8px; border-radius:20px; }
-    .hist-run-top { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; flex-wrap:wrap; gap:8px; }
-    .hist-run-num { font-family:var(--mono); font-size:.72rem; color:var(--muted); }
-    .hist-run-err { font-family:var(--mono); font-size:.95rem; font-weight:700; }
-    .hist-run.best .hist-run-err { color:var(--teal); }
-    .hist-run:not(.best) .hist-run-err { color:var(--text); }
-    .hist-params { display:flex; flex-wrap:wrap; gap:6px 14px; font-family:var(--mono); font-size:.72rem; color:var(--muted); margin-bottom:10px; }
-    .hist-params span { color:var(--text); }
-    .hist-bar-section { margin-bottom:10px; }
-    .hist-bar-label { font-family:var(--mono); font-size:.65rem; color:var(--muted); margin-bottom:5px; display:flex; justify-content:space-between; }
-    .hist-bar-label .bar-pct { color:var(--text); }
-    .hist-bar-track { height:5px; background:var(--border); border-radius:3px; overflow:hidden; }
-    .hist-bar-fill  { height:100%; border-radius:3px; transition:width .6s ease; }
-    .hist-run.best .hist-bar-fill { background:var(--teal); }
-    .hist-run:not(.best) .hist-bar-fill { background:var(--muted); }
-    .hist-weights { margin-top:10px; border-top:1px solid var(--border); padding-top:10px; }
-    .hist-weights-label { font-family:var(--mono); font-size:.65rem; letter-spacing:.12em; text-transform:uppercase; color:var(--teal-dim); margin-bottom:8px; }
-    .hist-weights-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
-    @media(max-width:520px){ .hist-weights-grid{ grid-template-columns:1fr; } }
-    .hist-weight-block { background:#0d1525; border:1px solid var(--border); border-radius:8px; padding:8px 10px; }
-    .hist-weight-block .wlabel { font-family:var(--mono); font-size:.62rem; color:var(--muted); margin-bottom:4px; }
-    .hist-weight-block .wvals  { font-family:var(--mono); font-size:.72rem; color:var(--text); line-height:1.6; }
-    .wvals .neg { color:var(--orange); } .wvals .pos { color:var(--teal); }
-    .hist-footer { display:flex; justify-content:flex-end; margin-top:14px; }
-    .btn-clear-hist { font-family:var(--mono); font-size:.72rem; color:var(--muted); background:none; border:1px solid var(--border); border-radius:6px; padding:5px 12px; cursor:pointer; transition:all .2s; }
-    .btn-clear-hist:hover { border-color:var(--orange); color:var(--orange); }
-  </style>
+/* History */
+.hist-entry{border:1px solid var(--border);border-radius:10px;padding:14px;
+            margin-bottom:12px;font-size:0.82rem}
+.hist-entry.best{border-color:var(--teal);background:#04160f}
+.hist-entry.best::before{content:'★ Melhor erro';color:var(--teal);
+  font-size:0.72rem;font-weight:700;display:block;margin-bottom:5px}
+.hist-head{display:flex;justify-content:space-between;align-items:center;
+           margin-bottom:8px;gap:10px;flex-wrap:wrap}
+.hist-run{font-weight:700;color:var(--text)}
+.hist-err{font-size:0.88rem}
+.hist-entry.best .hist-err{color:var(--teal)}
+.hist-err-val{color:var(--orange)}
+.bar-wrap{background:var(--border);border-radius:3px;height:5px;margin:6px 0 8px}
+.bar-fill{height:100%;border-radius:3px;background:var(--teal);transition:width .5s}
+.wblocks{display:flex;gap:8px;flex-wrap:wrap}
+.wblock{background:var(--surface2);border:1px solid var(--border);
+        border-radius:6px;padding:5px 8px}
+.wblock-title{color:var(--muted);font-size:0.7rem;margin-bottom:3px}
+.wblock-vals{display:flex;gap:4px;flex-wrap:wrap}
+.wv{font-size:0.74rem;font-family:monospace;padding:2px 5px;
+    border-radius:4px;background:var(--bg)}
+.wv.pos{color:var(--teal)}
+.wv.neg{color:var(--orange)}
+
+/* Loading */
+.load-list{list-style:none;margin:10px 0;padding:0}
+.load-list li{padding:6px 0;color:var(--muted);font-size:0.85rem;
+              border-bottom:1px solid var(--border)}
+.load-list li.done{color:var(--teal)}
+.load-list li::before{content:'○ '; color:var(--muted)}
+.load-list li.done::before{content:'✓ '; color:var(--teal)}
+</style>
 </head>
 <body>
-<div class="wrapper">
-  <header>
-    <div class="label">Aprendizado de Máquina · Demonstração Interativa</div>
-    <h1>Rede Neural Simples<br>Passo a Passo</h1>
-    <p>Escolha a função de ativação, configure os pesos e avance pelos 8 passos — cada etapa mostra todas as contas explícitas, gradientes por camada, variação dos pesos e o loss landscape ao final.</p>
-    <p class="updated">última atualização: {{ site.time | date: "%d/%m/%Y" }}</p>
-  </header>
+<div class="wrap">
 
-  <!-- Progress bar (sticky) -->
-  <div id="progress-bar-wrap">
-    <div class="progress-inner">
-      <div class="progress-track"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
-      <div class="progress-label">Passo <span id="prog-cur">0</span> de <span id="prog-tot">0</span></div>
-      <button class="btn-skip" id="btn-skip" onclick="skipToEnd()">⏭ Pular para o final</button>
-      <button class="reset-link" onclick="resetAll()">← reconfigurar</button>
-    </div>
-  </div>
+<h1>Rede Neural MLP</h1>
+<p class="sub">Matemática passo a passo: forward pass · backpropagation · 6 funções de ativação · loss landscape</p>
 
-  <!-- Loading -->
-  <div class="card" id="loading-card">
-    <div class="spinner"></div>
-    <ul id="pyodide-steps">
-      <li id="s1"><span class="dot"></span> Iniciando WebAssembly (Pyodide)</li>
-      <li id="s2"><span class="dot"></span> Carregando NumPy + Matplotlib</li>
-      <li id="s3"><span class="dot"></span> Lendo modelo Python</li>
-    </ul>
-    <div id="load-error"></div>
-  </div>
+<!-- Loading -->
+<div class="card" id="loading-card">
+  <div class="spinner" id="sp"></div>
+  <p style="text-align:center;color:var(--muted);margin-bottom:14px">Carregando ambiente Python…</p>
+  <ul class="load-list">
+    <li id="ll1">Baixando Pyodide (runtime Python/WASM)</li>
+    <li id="ll2">Carregando NumPy e Matplotlib</li>
+    <li id="ll3">Importando nn_calc.py</li>
+  </ul>
+</div>
 
-  <!-- Config -->
-  <div class="card" id="config-card">
-    <div class="card-title">// Configurar a Rede</div>
-    <div class="config-grid">
-      <!-- Left: hyperparams + activation -->
-      <div>
-        <div class="section-label">Dados e Hiperparâmetros</div>
-        <div class="input-group" style="margin-bottom:14px">
-          <label>Entrada X <span class="val" id="v-X">1.0</span></label>
-          <input type="range" id="inp-X" min="-2" max="2" step="0.1" value="1.0"
-                 oninput="document.getElementById('v-X').textContent=parseFloat(this.value).toFixed(1)">
-        </div>
-        <div class="input-group" style="margin-bottom:14px">
-          <label>Alvo y <span class="val" id="v-Y">0.0</span></label>
-          <input type="range" id="inp-Y" min="0" max="1" step="0.1" value="0.0"
-                 oninput="document.getElementById('v-Y').textContent=parseFloat(this.value).toFixed(1)">
-        </div>
-        <div class="input-group" style="margin-bottom:14px">
-          <label>Learning rate <span class="val" id="v-lr">0.50</span></label>
-          <input type="range" id="inp-lr" min="0.01" max="2.0" step="0.01" value="0.5"
-                 oninput="document.getElementById('v-lr').textContent=parseFloat(this.value).toFixed(2)">
-          <p class="hint">Alto → instável · Baixo → lento</p>
-        </div>
-        <div class="input-group" style="margin-bottom:18px">
-          <label>Épocas <span class="val" id="v-ep">100</span></label>
-          <input type="range" id="inp-ep" min="10" max="500" step="10" value="100"
-                 oninput="document.getElementById('v-ep').textContent=this.value">
-        </div>
-        <div class="section-label">Função de Ativação — Camadas Ocultas</div>
-        <div class="act-grid">
-          <button class="act-btn active" id="act-sigmoid" onclick="selectAct('sigmoid')">
-            <span class="aname">Sigmoide</span>
-            <span class="aformula">1/(1+e⁻ᶻ)</span>
-            <span class="arange">saída: (0,1)</span>
-          </button>
-          <button class="act-btn" id="act-relu" onclick="selectAct('relu')">
-            <span class="aname">ReLU</span>
-            <span class="aformula">max(0, z)</span>
-            <span class="arange">saída: [0,∞)</span>
-          </button>
-          <button class="act-btn" id="act-tanh" onclick="selectAct('tanh')">
-            <span class="aname">Tanh</span>
-            <span class="aformula">(eᶻ−e⁻ᶻ)/(eᶻ+e⁻ᶻ)</span>
-            <span class="arange">saída: (−1,1)</span>
-          </button>
-          <button class="act-btn" id="act-leaky_relu" onclick="selectAct('leaky_relu')">
-            <span class="aname">Leaky ReLU</span>
-            <span class="aformula">max(0.01z, z)</span>
-            <span class="arange">saída: (−∞,∞)</span>
-          </button>
-          <button class="act-btn" id="act-elu" onclick="selectAct('elu')">
-            <span class="aname">ELU</span>
-            <span class="aformula">z>0: z; z≤0: eᶻ−1</span>
-            <span class="arange">saída: [−1,∞)</span>
-          </button>
-          <button class="act-btn" id="act-swish" onclick="selectAct('swish')">
-            <span class="aname">Swish</span>
-            <span class="aformula">z · σ(z)</span>
-            <span class="arange">suave, ≈ReLU</span>
-          </button>
-        </div>
-        <p id="act-hint">Sigmoide: saída em (0,1), gradiente máx = 0.25. Pode causar vanishing gradient em redes profundas.</p>
+<!-- Config -->
+<div class="card" id="config-card" style="display:none">
+  <div class="card-title"><span class="step-num">⚙</span> Configurar a Rede</div>
+  <div class="cfg-grid">
+    <div>
+      <div class="field-row">
+        <label>Entrada X  <span class="val" id="lx">0.6</span></label>
+        <input type="range" id="sl-x" min="0.01" max="0.99" step="0.01" value="0.6"
+               oninput="document.getElementById('lx').textContent=parseFloat(this.value).toFixed(2)"/>
       </div>
-
-      <!-- Right: initial weights -->
-      <div>
-        <div class="section-label">Pesos Iniciais</div>
-        <p class="hint" style="margin-bottom:10px">W1 — escala X para cada neurônio de Oculta A</p>
-        <div class="w2-grid" style="margin-bottom:14px">
-          <div><label style="font-size:.78rem;color:var(--muted);display:block;margin-bottom:4px">W1[0] → hA1</label>
-            <input type="number" id="w1-0" value="0.5" step="0.1"></div>
-          <div><label style="font-size:.78rem;color:var(--muted);display:block;margin-bottom:4px">W1[1] → hA2</label>
-            <input type="number" id="w1-1" value="-0.2" step="0.1"></div>
+      <div class="field-row">
+        <label>Alvo y  <span class="val" id="ly">0.8</span></label>
+        <input type="range" id="sl-y" min="0.01" max="0.99" step="0.01" value="0.8"
+               oninput="document.getElementById('ly').textContent=parseFloat(this.value).toFixed(2)"/>
+      </div>
+      <div class="field-row">
+        <label>Learning rate  <span class="val" id="llr">0.5</span></label>
+        <input type="range" id="sl-lr" min="0.01" max="2.0" step="0.01" value="0.5"
+               oninput="document.getElementById('llr').textContent=parseFloat(this.value).toFixed(2)"/>
+      </div>
+      <div class="field-row">
+        <label>Épocas  <span class="val" id="lep">80</span></label>
+        <input type="range" id="sl-ep" min="5" max="300" step="5" value="80"
+               oninput="document.getElementById('lep').textContent=this.value"/>
+      </div>
+    </div>
+    <div>
+      <div style="font-size:0.8rem;color:var(--muted);margin-bottom:8px">Função de ativação (camadas ocultas)</div>
+      <div class="act-grid">
+        <button class="act-btn act-sigmoid active" onclick="selectAct('sigmoid',this)">
+          <div class="label">Sigmoide</div>
+          <div class="formula">σ(z)=1/(1+e⁻ᶻ)</div>
+        </button>
+        <button class="act-btn act-relu" onclick="selectAct('relu',this)">
+          <div class="label">ReLU</div>
+          <div class="formula">max(0,z)</div>
+        </button>
+        <button class="act-btn act-tanh" onclick="selectAct('tanh',this)">
+          <div class="label">Tanh</div>
+          <div class="formula">tanh(z)∈(−1,1)</div>
+        </button>
+        <button class="act-btn act-leaky" onclick="selectAct('leaky_relu',this)">
+          <div class="label">Leaky ReLU</div>
+          <div class="formula">max(αz,z) α=0.01</div>
+        </button>
+        <button class="act-btn act-elu" onclick="selectAct('elu',this)">
+          <div class="label">ELU</div>
+          <div class="formula">α(eᶻ−1) z&lt;0</div>
+        </button>
+        <button class="act-btn act-swish" onclick="selectAct('swish',this)">
+          <div class="label">Swish</div>
+          <div class="formula">z·σ(z)</div>
+        </button>
+      </div>
+      <div class="act-hint" id="act-hint">Saída ∈ (0,1) — clássica para classificação binária. Atenção ao vanishing gradient.</div>
+      <div style="font-size:0.8rem;color:var(--muted);margin:14px 0 6px">Pesos iniciais (quebra de simetria)</div>
+      <div class="w-grid">
+        <div>
+          <div class="w-label">W1 — X→OcultaA</div>
+          <div style="display:flex;gap:6px;margin-bottom:8px">
+            <div><div class="w-label">W1[0]</div>
+              <input type="number" id="w10" value="0.4" step="0.05"/></div>
+            <div><div class="w-label">W1[1]</div>
+              <input type="number" id="w11" value="-0.3" step="0.05"/></div>
+          </div>
+          <div class="w-label">W3 — OcultaB→Saída</div>
+          <div style="display:flex;gap:6px">
+            <div><div class="w-label">W3[0]</div>
+              <input type="number" id="w30" value="0.6" step="0.05"/></div>
+            <div><div class="w-label">W3[1]</div>
+              <input type="number" id="w31" value="-0.2" step="0.05"/></div>
+          </div>
         </div>
-        <p class="hint" style="margin-bottom:10px">W2 — mistura os neurônios de Oculta A para gerar Oculta B</p>
-        <div class="w2-grid" style="margin-bottom:14px">
-          <div><label style="font-size:.78rem;color:var(--muted);display:block;margin-bottom:4px">W2[0,0] hA1→hB1</label>
-            <input type="number" id="w2-00" value="0.4" step="0.1"></div>
-          <div><label style="font-size:.78rem;color:var(--muted);display:block;margin-bottom:4px">W2[0,1] hA1→hB2</label>
-            <input type="number" id="w2-01" value="0.1" step="0.1"></div>
-          <div><label style="font-size:.78rem;color:var(--muted);display:block;margin-bottom:4px">W2[1,0] hA2→hB1</label>
-            <input type="number" id="w2-10" value="-0.3" step="0.1"></div>
-          <div><label style="font-size:.78rem;color:var(--muted);display:block;margin-bottom:4px">W2[1,1] hA2→hB2</label>
-            <input type="number" id="w2-11" value="0.5" step="0.1"></div>
-        </div>
-        <p class="hint" style="margin-bottom:10px">W3 — combina Oculta B para gerar a saída final</p>
-        <div class="w2-grid">
-          <div><label style="font-size:.78rem;color:var(--muted);display:block;margin-bottom:4px">W3[0] hB1→ŷ</label>
-            <input type="number" id="w3-0" value="0.7" step="0.1"></div>
-          <div><label style="font-size:.78rem;color:var(--muted);display:block;margin-bottom:4px">W3[1] hB2→ŷ</label>
-            <input type="number" id="w3-1" value="-0.1" step="0.1"></div>
+        <div>
+          <div class="w-label">W2 — OcultaA→OcultaB</div>
+          <div style="display:flex;gap:6px;margin-bottom:6px">
+            <div><div class="w-label">W2[0,0]</div>
+              <input type="number" id="w200" value="0.5" step="0.05"/></div>
+            <div><div class="w-label">W2[0,1]</div>
+              <input type="number" id="w201" value="-0.4" step="0.05"/></div>
+          </div>
+          <div style="display:flex;gap:6px">
+            <div><div class="w-label">W2[1,0]</div>
+              <input type="number" id="w210" value="0.3" step="0.05"/></div>
+            <div><div class="w-label">W2[1,1]</div>
+              <input type="number" id="w211" value="0.7" step="0.05"/></div>
+          </div>
         </div>
       </div>
     </div>
-    <button class="btn-primary" id="btn-start">▶ CALCULAR TODOS OS PASSOS</button>
   </div>
-
-  <!-- Computing -->
-  <div class="card" id="computing-card">
-    <div class="computing-spinner"></div>
-    <p>Executando forward pass, backpropagation e gerando todos os gráficos…<br>
-    <span style="color:var(--muted);font-size:.72rem">(pode levar alguns segundos — loss landscape e gráficos de ativação são gerados aqui)</span></p>
-  </div>
-
-  <!-- Steps -->
-  <div id="steps-container"></div>
-
-  <!-- History -->
-  <div class="card" id="history-card">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
-      <div class="card-title" style="margin-bottom:0">// Histórico de Execuções</div>
-      <button class="btn-clear-hist" onclick="clearHistory()">✕ Limpar</button>
-    </div>
-    <p style="font-family:var(--mono);font-size:.71rem;color:var(--muted);margin-bottom:16px;line-height:1.6">
-      A barra mostra o <strong style="color:var(--text)">erro relativo ao pior resultado do histórico</strong>:
-      100% = pior erro registrado; barra mais curta = melhor convergência.
-      Útil para comparar como diferentes combinações de pesos iniciais e função de ativação afetam o resultado final.
-    </p>
-    <div class="hist-runs" id="hist-runs"></div>
+  <div style="display:flex;gap:10px;margin-top:16px;flex-wrap:wrap;align-items:center">
+    <button class="btn btn-primary" id="btn-run" onclick="runNN()">▶ Executar</button>
+    <span style="font-size:0.8rem;color:var(--muted)">A saída usa sempre Sigmoide para manter ŷ ∈ (0,1)</span>
   </div>
 </div>
 
+<!-- Computing -->
+<div class="card" id="computing-card" style="display:none">
+  <div class="spinner orange"></div>
+  <p style="text-align:center;color:var(--muted)">Calculando treinamento completo…</p>
+</div>
+
+<!-- Progress bar -->
+<div id="progress-bar-wrap">
+  <div class="prog-inner">
+    <div class="prog-track"><div class="prog-fill" id="prog-fill" style="width:0%"></div></div>
+    <span class="prog-label" id="prog-label">Passo 0 de 8</span>
+    <button class="btn btn-skip" id="btn-skip-all" onclick="skipToEnd()">⏭ Pular ao final</button>
+    <span class="prog-back" onclick="resetAll()">← reconfigurar</span>
+  </div>
+</div>
+
+<!-- Steps container -->
+<div id="steps-container"></div>
+
+<!-- History -->
+<div class="card" id="history-card" style="display:none">
+  <div class="card-title" style="justify-content:space-between">
+    <span><span class="step-num" style="background:var(--muted)">H</span> Histórico de Execuções</span>
+    <button class="btn btn-ghost" onclick="clearHistory()">Limpar</button>
+  </div>
+  <p style="font-size:0.78rem;color:var(--muted);margin-bottom:12px">
+    A barra indica quanto do erro máximo cada execução atingiu em relação à pior do histórico.
+    100% = maior erro registrado; 0% = execução sem erro.
+  </p>
+  <div id="hist-list"></div>
+</div>
+
+</div><!-- /wrap -->
+
 <script>
-  let _pyodide=null, _steps=[], _revealed=0, _history=[], _selAct='sigmoid';
+let _pyodide,_steps=[],_revealed=0,_history=[],_selAct='sigmoid';
 
-  const ACT_HINTS = {
-    sigmoid:   'Sigmoide: saída em (0,1), gradiente máx = 0.25. Pode causar vanishing gradient em redes profundas.',
-    relu:      'ReLU: gradiente constante (1) na zona ativa. Risco: dying ReLU — neurônio pode parar de aprender para z ≤ 0.',
-    tanh:      'Tanh: centrada em zero, saída (−1,1), gradiente máx = 1. Melhor convergência que sigmoide, mas ainda satura.',
-    leaky_relu:'Leaky ReLU: como ReLU mas com inclinação α=0.01 para z<0. Resolve dying ReLU, gradiente nunca é exatamente zero.',
-    elu:       'ELU: curva suave para z<0 (e^z−1). Contínua em z=0, sem kink. Gradiente positivo em toda a zona negativa.',
-    swish:     'Swish (SiLU): f(z)=z·σ(z). Usada no GPT. Não-monotônica — pode suprimir ativações negativas pequenas.',
-  };
+const ACT_HINTS={
+  sigmoid:'Saída ∈ (0,1) — clássica para classificação binária. Atenção ao vanishing gradient.',
+  relu:'Gradiente constante na zona ativa. Pode sofrer dying ReLU com lr alto.',
+  tanh:'Saída ∈ (−1,1), zero-centrada. Gradiente máximo=1, melhor que sigmoide.',
+  leaky_relu:'Resolve dying ReLU: gradiente nunca zero (α=0.01 na zona negativa).',
+  elu:'Curva suave para z<0, zero-centrada, elimina dying ReLU com custo extra.',
+  swish:'z·σ(z), suave, não-monótona. Usada no EfficientNet e variantes GPT.'
+};
 
-  function selectAct(act) {
-    _selAct = act;
-    ['sigmoid','relu','tanh','leaky_relu','elu','swish'].forEach(n => {
-      document.getElementById('act-'+n).className = 'act-btn' + (n===act ? ' active' : '');
-    });
-    document.getElementById('act-hint').textContent = ACT_HINTS[act] || '';
+function selectAct(key,el){
+  _selAct=key;
+  document.querySelectorAll('.act-btn').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('act-hint').textContent=ACT_HINTS[key]||'';
+}
+
+async function loadPyodide(){
+  const s=id=>document.getElementById(id);
+  try{
+    const pyodide=await loadPyodideWrapper();
+    s('ll1').classList.add('done');
+    await pyodide.loadPackage(['numpy','matplotlib']);
+    s('ll2').classList.add('done');
+    const r=await fetch('./nn_calc.py?v='+Date.now());
+    const code=await r.text();
+    await pyodide.runPythonAsync(code);
+    s('ll3').classList.add('done');
+    _pyodide=pyodide;
+    s('loading-card').style.display='none';
+    s('config-card').style.display='block';
+  }catch(e){
+    s('loading-card').innerHTML='<p style="color:var(--orange)">Erro ao carregar: '+e.message+'</p>';
   }
+}
 
-  function ldStep(id, state) { document.getElementById(id).className = state; }
-  function showLoadError(msg) {
-    const b=document.getElementById('load-error'); b.style.display='block'; b.textContent='✗ '+msg;
-    document.querySelector('.spinner').style.display='none';
-  }
-
-  async function init() {
-    if (typeof loadPyodide==='undefined') { showLoadError('Falha ao carregar Pyodide.'); return; }
-    try {
-      ldStep('s1','active');
-      _pyodide = await loadPyodide();
-      ldStep('s1','done'); ldStep('s2','active');
-      await _pyodide.loadPackage(['numpy','matplotlib']);
-      ldStep('s2','done'); ldStep('s3','active');
-      const res = await fetch('./nn_calc.py?v='+Date.now());
-      if (!res.ok) throw new Error('nn_calc.py não encontrado (HTTP '+res.status+')');
-      _pyodide.runPython(await res.text());
-      ldStep('s3','done');
-      document.getElementById('loading-card').style.display='none';
-      document.getElementById('config-card').style.display='block';
-      document.getElementById('btn-start').addEventListener('click', compute);
-    } catch(e) { showLoadError(e.message); }
-  }
-
-  async function compute() {
-    const g=id=>document.getElementById(id).value;
-    const params=[g('inp-X'),g('inp-Y'),g('inp-lr'),
-                  g('w1-0'),g('w1-1'),
-                  g('w2-00'),g('w2-01'),g('w2-10'),g('w2-11'),
-                  g('w3-0'),g('w3-1'),g('inp-ep'),_selAct];
-
-    document.getElementById('config-card').style.display='none';
-    document.getElementById('computing-card').style.display='block';
-    document.getElementById('steps-container').innerHTML='';
-    document.getElementById('steps-container').style.display='none';
-    document.getElementById('progress-bar-wrap').style.display='none';
-    await new Promise(r=>setTimeout(r,60));
-
-    try {
-      const json_str = _pyodide.runPython(
-        `nn_run_all(${params.map(p=>'"'+p+'"').join(',')})`
-      ).toString();
-      const data = JSON.parse(json_str);
-      if (!data.ok) throw new Error(data.error+'\n'+(data.tb||''));
-
-      _steps=[...data.steps]; _revealed=0;
-      _history.push({
-        X:data.summary.X,Y:data.summary.Y,lr:data.summary.lr,
-        epochs:data.summary.epochs,act:data.summary.act,err_f:data.summary.err_f,
-        w1_init:data.summary.w1_init,w2_init:data.summary.w2_init,w3_init:data.summary.w3_init,
-      });
-      renderHistory();
-
-      document.getElementById('computing-card').style.display='none';
-      document.getElementById('config-card').style.display='block';
-      document.getElementById('steps-container').style.display='block';
-      document.getElementById('prog-tot').textContent=_steps.length;
-      document.getElementById('progress-bar-wrap').style.display='block';
-      document.getElementById('btn-skip').style.display='';
-      revealNext();
-    } catch(e) {
-      document.getElementById('computing-card').style.display='none';
-      document.getElementById('config-card').style.display='block';
-      alert('Erro:\n'+e.message);
-    }
-  }
-
-  function skipToEnd() {
-    if (_revealed>=_steps.length) return;
-    const prev=document.getElementById('step-'+(_revealed-1));
-    if (prev) { const b=prev.querySelector('.btn-next-step'); if(b){b.disabled=true;b.textContent='✓';} }
-    while (_revealed<_steps.length) revealStep(_revealed, true);
-    const last=document.getElementById('step-'+(_steps.length-1));
-    if (last) setTimeout(()=>last.scrollIntoView({behavior:'smooth',block:'start'}),80);
-    document.getElementById('btn-skip').style.display='none';
-  }
-
-  function revealNext() { if (_revealed<_steps.length) revealStep(_revealed,false); }
-
-  function revealStep(n, noScroll) {
-    const step=_steps[n]; _revealed=n+1;
-    const pct=Math.round((_revealed/_steps.length)*100);
-    document.getElementById('progress-fill').style.width=pct+'%';
-    document.getElementById('prog-cur').textContent=_revealed;
-    if (_revealed>=_steps.length) document.getElementById('btn-skip').style.display='none';
-
-    const card=document.createElement('div');
-    card.className='step-card'; card.id='step-'+n;
-
-    card.innerHTML=`<div class="step-header">
-      <span class="step-badge">Passo ${n+1} / ${_steps.length}</span>
-      <span class="step-title-text">${step.title}</span>
-    </div>`;
-
-    const content=document.createElement('div');
-    content.className='step-content';
-    for (const sec of step.sections) { const el=buildSection(sec); if(el) content.appendChild(el); }
-    card.appendChild(content);
-
-    const footer=document.createElement('div'); footer.className='step-footer';
-    if (_revealed<_steps.length) {
-      const btn=document.createElement('button'); btn.className='btn-next-step';
-      btn.textContent='Próximo →';
-      btn.onclick=()=>{btn.disabled=true;btn.textContent='✓';revealNext();};
-      footer.appendChild(btn);
-    } else {
-      const btn=document.createElement('button'); btn.className='btn-done';
-      btn.textContent='✓ Concluído — reconfigurar'; btn.onclick=resetAll;
-      footer.appendChild(btn);
-    }
-    card.appendChild(footer);
-    document.getElementById('steps-container').appendChild(card);
-    if (!noScroll) setTimeout(()=>card.scrollIntoView({behavior:'smooth',block:'start'}),80);
-  }
-
-  function buildSection(sec) {
-    let el;
-    switch(sec.type) {
-      case 'subtitle':
-        el=document.createElement('div'); el.className='sec-subtitle'; el.textContent=sec.content; break;
-      case 'text':
-        el=document.createElement('p'); el.className='sec-text'; el.textContent=sec.content; break;
-      case 'math':
-        el=document.createElement('div'); el.className='sec-math';
-        try { katex.render(sec.content,el,{displayMode:true,throwOnError:false,strict:false}); }
-        catch(e) { el.textContent=sec.content; el.style.color='var(--muted)'; }
-        break;
-      case 'img':
-        el=document.createElement('div'); el.className='sec-img';
-        const img=document.createElement('img');
-        img.src=sec.content; img.loading='lazy'; img.style.maxWidth='100%';
-        el.appendChild(img); break;
-      case 'highlight':
-        el=document.createElement('div');
-        el.className='sec-highlight '+(sec.variant||'teal');
-        el.textContent=sec.content; break;
-      case 'table':
-        el=document.createElement('div'); el.className='sec-table';
-        const tbl=document.createElement('table');
-        const tr0=tbl.createTHead().insertRow();
-        for(const h of sec.headers){const th=document.createElement('th');th.textContent=h;tr0.appendChild(th);}
-        const tb=tbl.createTBody();
-        for(const row of sec.rows){const tr=tb.insertRow();for(const c of row){const td=tr.insertCell();td.textContent=c;}}
-        el.appendChild(tbl); break;
-      default: return null;
-    }
-    return el;
-  }
-
-  function renderHistory() {
-    const card=document.getElementById('history-card');
-    const container=document.getElementById('hist-runs');
-    if (!_history.length) { card.style.display='none'; return; }
-    card.style.display='block'; container.innerHTML='';
-    const bestErr=Math.min(..._history.map(h=>h.err_f));
-    const maxErr =Math.max(..._history.map(h=>h.err_f));
-    _history.forEach((h,i)=>{
-      const isBest=h.err_f===bestErr;
-      const barPct=maxErr>0?Math.round((h.err_f/maxErr)*100):0;
-      function fmtW(v){return `<span class="${v<0?'neg':'pos'}">${v.toFixed(4)}</span>`;}
-      const div=document.createElement('div');
-      div.className='hist-run'+(isBest?' best':'');
-      div.innerHTML=`
-        <div class="hist-run-top">
-          <span class="hist-run-num">Execução #${i+1} · ${h.act}</span>
-          <span class="hist-run-err">E = ${h.err_f.toFixed(8)}</span>
-        </div>
-        <div class="hist-params">X=<span>${h.X}</span> y=<span>${h.Y}</span> lr=<span>${h.lr}</span> épocas=<span>${h.epochs}</span></div>
-        <div class="hist-bar-section">
-          <div class="hist-bar-label"><span>erro relativo ao pior do histórico</span><span class="bar-pct">${barPct}%</span></div>
-          <div class="hist-bar-track"><div class="hist-bar-fill" style="width:${barPct}%"></div></div>
-        </div>
-        <div class="hist-weights">
-          <div class="hist-weights-label">Pesos iniciais</div>
-          <div class="hist-weights-grid">
-            <div class="hist-weight-block">
-              <div class="wlabel">W1 (X → Oculta A)</div>
-              <div class="wvals">[0]: ${fmtW(h.w1_init[0])}<br>[1]: ${fmtW(h.w1_init[1])}</div>
-            </div>
-            <div class="hist-weight-block">
-              <div class="wlabel">W2 (Oculta A → B)</div>
-              <div class="wvals">
-                [0,0]:${fmtW(h.w2_init[0][0])} [0,1]:${fmtW(h.w2_init[0][1])}<br>
-                [1,0]:${fmtW(h.w2_init[1][0])} [1,1]:${fmtW(h.w2_init[1][1])}
-              </div>
-            </div>
-            <div class="hist-weight-block">
-              <div class="wlabel">W3 (Oculta B → Saída)</div>
-              <div class="wvals">[0]: ${fmtW(h.w3_init[0])}<br>[1]: ${fmtW(h.w3_init[1])}</div>
-            </div>
-          </div>
-        </div>`;
-      container.appendChild(div);
-    });
-  }
-
-  function clearHistory() { _history=[]; renderHistory(); }
-
-  function resetAll() {
-    _steps=[]; _revealed=0;
-    document.getElementById('steps-container').innerHTML='';
-    document.getElementById('steps-container').style.display='none';
-    document.getElementById('progress-bar-wrap').style.display='none';
-    document.getElementById('progress-fill').style.width='0%';
-    document.getElementById('btn-skip').style.display='';
-    window.scrollTo({top:0,behavior:'smooth'});
-  }
-
-  window.addEventListener('load',()=>{
+async function loadPyodideWrapper(){
+  return new Promise((res,rej)=>{
     const s=document.createElement('script');
-    s.src='https://cdn.jsdelivr.net/pyodide/v0.25.0/full/pyodide.js';
-    s.onload=()=>init();
-    s.onerror=()=>showLoadError('Não foi possível baixar o Pyodide.');
+    s.src='https://cdn.jsdelivr.net/pyodide/v0.27.0/full/pyodide.js';
+    s.onload=()=>loadPyodide_().then(res).catch(rej);
+    s.onerror=()=>rej(new Error('Falha ao carregar Pyodide'));
     document.head.appendChild(s);
   });
+  async function loadPyodide_(){return await window.loadPyodide({indexURL:'https://cdn.jsdelivr.net/pyodide/v0.27.0/full/'});}
+}
+
+async function runNN(){
+  const g=id=>document.getElementById(id).value;
+  const params=[g('sl-x'),g('sl-y'),g('sl-lr'),g('w10'),g('w11'),
+                g('w200'),g('w201'),g('w210'),g('w211'),
+                g('w30'),g('w31'),g('sl-ep'),_selAct];
+
+  document.getElementById('computing-card').style.display='block';
+  document.getElementById('btn-run').disabled=true;
+  document.getElementById('steps-container').innerHTML='';
+  _steps=[]; _revealed=0;
+  document.getElementById('progress-bar-wrap').style.display='none';
+
+  await new Promise(r=>setTimeout(r,30));
+
+  try{
+    const json_str=_pyodide.runPython(
+      'nn_run_all('+params.map(p=>'"'+p+'"').join(',')+')'
+    ).toString();
+    const data=JSON.parse(json_str);
+    if(!data.ok){
+      document.getElementById('computing-card').innerHTML=
+        '<p style="color:var(--orange)">Erro: '+data.error+'</p><pre style="font-size:.7rem;color:var(--muted)">'+data.tb+'</pre>';
+      return;
+    }
+    _steps=data.steps;
+    document.getElementById('computing-card').style.display='none';
+    document.getElementById('btn-run').disabled=false;
+
+    // Show progress bar
+    document.getElementById('progress-bar-wrap').style.display='block';
+    document.getElementById('btn-skip-all').style.display='inline-block';
+    updateProgress();
+
+    revealStep(0,false);
+    addHistory(data.summary);
+  }catch(e){
+    document.getElementById('computing-card').innerHTML=
+      '<p style="color:var(--orange)">Erro JS: '+e.message+'</p>';
+    document.getElementById('btn-run').disabled=false;
+  }
+}
+
+function updateProgress(){
+  const total=_steps.length;
+  const pct=total>0?Math.round((_revealed/total)*100):0;
+  document.getElementById('prog-fill').style.width=pct+'%';
+  document.getElementById('prog-label').textContent=`Passo ${_revealed} de ${total}`;
+  if(_revealed>=total){
+    document.getElementById('btn-skip-all').style.display='none';
+  }
+}
+
+function revealStep(n,noScroll){
+  if(n>=_steps.length) return;
+  const step=_steps[n];
+  if(!step) return; // null placeholder shouldn't happen
+  _revealed=n+1;
+  updateProgress();
+
+  const c=document.createElement('div');
+  c.className='card'; c.id='step-card-'+n;
+
+  const numEl=document.createElement('div');
+  numEl.className='card-title';
+  const spanNum=document.createElement('span');
+  spanNum.className='step-num';
+  // Color the step number
+  const orange_steps=[4,5]; // backprop + loss landscape
+  if(orange_steps.includes(n)) spanNum.classList.add('orange');
+  else if(n===1) spanNum.classList.add('purple');
+  spanNum.textContent=n;
+  numEl.appendChild(spanNum);
+  numEl.appendChild(document.createTextNode(' '+step.title));
+  c.appendChild(numEl);
+
+  (step.sections||[]).forEach(sec=>{
+    const el=renderSection(sec);
+    if(el) c.appendChild(el);
+  });
+
+  // Footer
+  const footer=document.createElement('div');
+  footer.className='step-footer';
+  if(_revealed<_steps.length){
+    const btn=document.createElement('button');
+    btn.className='btn btn-primary'; btn.id='btn-next-'+n;
+    btn.textContent='Próximo →';
+    btn.onclick=()=>{ btn.disabled=true; revealNext(); };
+    footer.appendChild(btn);
+  } else {
+    const fin=document.createElement('span');
+    fin.style.cssText='color:var(--teal);font-size:.85rem;font-weight:700';
+    fin.textContent='✓ Concluído';
+    footer.appendChild(fin);
+    const re=document.createElement('button');
+    re.className='btn btn-ghost'; re.style.marginLeft='8px';
+    re.textContent='← reconfigurar';
+    re.onclick=resetAll;
+    footer.appendChild(re);
+  }
+  c.appendChild(footer);
+  document.getElementById('steps-container').appendChild(c);
+
+  // Render math
+  renderMath(c);
+
+  if(!noScroll){
+    setTimeout(()=>c.scrollIntoView({behavior:'smooth',block:'start'}),80);
+  }
+}
+
+function revealNext(){ revealStep(_revealed,false); }
+
+function skipToEnd(){
+  document.getElementById('btn-skip-all').style.display='none';
+  // disable current Próximo btn
+  const curBtn=document.getElementById('btn-next-'+(_revealed-1));
+  if(curBtn) curBtn.disabled=true;
+  while(_revealed<_steps.length) revealStep(_revealed,true);
+  // scroll to last card
+  const last=document.getElementById('step-card-'+(_steps.length-1));
+  if(last) setTimeout(()=>last.scrollIntoView({behavior:'smooth',block:'start'}),80);
+}
+
+function resetAll(){
+  document.getElementById('progress-bar-wrap').style.display='none';
+  document.getElementById('steps-container').innerHTML='';
+  document.getElementById('btn-skip-all').style.display='inline-block';
+  _steps=[]; _revealed=0;
+  document.getElementById('config-card').style.display='block';
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function renderSection(sec){
+  const d=document.createElement('div');
+  if(sec.type==='text'){
+    d.className='sec-text'; d.textContent=sec.content;
+  } else if(sec.type==='subtitle'){
+    d.className='sec-subtitle'; d.textContent=sec.content;
+  } else if(sec.type==='math'){
+    d.className='sec-math';
+    d.setAttribute('data-math',sec.content);
+    d.textContent=sec.content;
+  } else if(sec.type==='img'){
+    d.className='sec-img';
+    const img=document.createElement('img');
+    img.src=sec.content; img.alt=''; img.loading='lazy';
+    d.appendChild(img);
+  } else if(sec.type==='highlight'){
+    d.className=sec.variant==='orange'?'hl-orange':'hl-teal';
+    d.textContent=sec.content;
+  } else if(sec.type==='table'){
+    d.className='sec-table';
+    const tbl=document.createElement('table');
+    const thead=document.createElement('thead');
+    const hrow=document.createElement('tr');
+    (sec.headers||[]).forEach(h=>{
+      const th=document.createElement('th'); th.textContent=h; hrow.appendChild(th);
+    });
+    thead.appendChild(hrow); tbl.appendChild(thead);
+    const tbody=document.createElement('tbody');
+    (sec.rows||[]).forEach(row=>{
+      const tr=document.createElement('tr');
+      row.forEach(cell=>{
+        const td=document.createElement('td');
+        td.setAttribute('data-math',cell);
+        td.textContent=cell;
+        tr.appendChild(td);
+      });
+      tbody.appendChild(tr);
+    });
+    tbl.appendChild(tbody); d.appendChild(tbl);
+  } else return null;
+  return d;
+}
+
+function renderMath(root){
+  if(!window._katexReady){ setTimeout(()=>renderMath(root),200); return; }
+  const els=root?root.querySelectorAll('[data-math]'):document.querySelectorAll('[data-math]');
+  els.forEach(el=>{
+    try{
+      katex.render(el.getAttribute('data-math'),el,
+        {throwOnError:false,displayMode:el.classList.contains('sec-math')});
+    }catch(e){}
+  });
+  if(!root && window.renderMathInElement){
+    renderMathInElement(document.body,{
+      delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}],
+      throwOnError:false
+    });
+  }
+}
+window.renderMath=()=>renderMath(null);
+
+// ── History ───────────────────────────────────────────────────────────────────
+function addHistory(s){
+  _history.push(s);
+  document.getElementById('history-card').style.display='block';
+  renderHistory();
+}
+function clearHistory(){
+  _history=[];
+  document.getElementById('history-card').style.display='none';
+  document.getElementById('hist-list').innerHTML='';
+}
+function renderHistory(){
+  const maxErr=Math.max(..._history.map(h=>h.err_f));
+  const bestIdx=_history.reduce((bi,h,i)=>h.err_f<_history[bi].err_f?i:bi,0);
+  const el=document.getElementById('hist-list');
+  el.innerHTML='';
+  [..._history].reverse().forEach((h,ri)=>{
+    const realIdx=_history.length-1-ri;
+    const div=document.createElement('div');
+    div.className='hist-entry'+(realIdx===bestIdx?' best':'');
+    const barPct=maxErr>0?(h.err_f/maxErr*100).toFixed(1):0;
+    div.innerHTML=`
+      <div class="hist-head">
+        <span class="hist-run">#${realIdx+1} — ${h.act}</span>
+        <span class="hist-err">
+          Erro final: <span class="${realIdx===bestIdx?'':'hist-err-val'}">${h.err_f.toPrecision(5)}</span>
+        </span>
+      </div>
+      <div style="font-size:.76rem;color:var(--muted);margin-bottom:4px">
+        X=${h.X} · y=${h.Y} · lr=${h.lr} · ${h.epochs} épocas
+      </div>
+      <div class="bar-wrap"><div class="bar-fill" style="width:${barPct}%"></div></div>
+      <div class="wblocks">
+        ${wblock('W1',h.w1_init)}
+        ${wblock('W2',[h.w2_init[0][0],h.w2_init[0][1],h.w2_init[1][0],h.w2_init[1][1]])}
+        ${wblock('W3',h.w3_init)}
+      </div>`;
+    el.appendChild(div);
+  });
+}
+function wblock(name,vals){
+  const vhtml=vals.map(v=>{
+    const cls=parseFloat(v)>=0?'pos':'neg';
+    return `<span class="wv ${cls}">${parseFloat(v).toFixed(3)}</span>`;
+  }).join('');
+  return `<div class="wblock"><div class="wblock-title">${name}</div>
+          <div class="wblock-vals">${vhtml}</div></div>`;
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+loadPyodide();
 </script>
 </body>
 </html>
