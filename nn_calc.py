@@ -1087,13 +1087,13 @@ def nn_run_all(X_s,Y_s,lr_s,w1_0,w1_1,w2_00,w2_01,w2_10,w2_11,w3_0,w3_1,epochs_s
                  "Cores escuras (verde) = erro baixo (vales, mínimos). "
                  "Cores claras (vermelho) = erro alto (picos, planaltos). "
                  "A linha tracejada branca é a trajetória percorrida durante o treinamento — "
-                 "o algoritmo navega essa superfície descendo sempre na direção de maior declive (gradiente negativo)."},
-                {"type":"highlight","content":
+                 "o algoritmo navega essa superfície descendo sempre na direção de maior declive (gradiente negativo)."})
+        estado_final_secs.append({"type":"highlight","content":
                  "⚠ Este é um corte 2D de um espaço 8-dimensional (8 pesos). "
                  "Na realidade, W1 e W2 também se movem simultaneamente, "
                  "mas este slice já revela o conceito: existem vales, planaltos, e às vezes mínimos locais.",
-                 "variant":"orange"},
-                {"type":"text","content":
+                 "variant":"orange"})
+        estado_final_secs.append({"type":"text","content":
                  "Por que o landscape tem essa forma? A saída ŷ = σ(hB · W3) é uma função sigmoid — "
                  "suave e limitada em (0,1). O erro E = ½(y−ŷ)² é então uma superfície convexa "
                  "em relação a W3 (se W1 e W2 fossem fixos). "
