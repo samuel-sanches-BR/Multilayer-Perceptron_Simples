@@ -540,19 +540,14 @@ function renderMath(root){
   if(!window._katexReady){ setTimeout(()=>renderMath(root),200); return; }
   const els=root?root.querySelectorAll('[data-math]'):document.querySelectorAll('[data-math]');
   els.forEach(el=>{
+    if(el.dataset.rendered) return;
     try{
       katex.render(el.getAttribute('data-math'),el,
         {throwOnError:false,displayMode:el.classList.contains('sec-math')});
+      el.dataset.rendered='1';
     }catch(e){}
   });
-  if(!root && window.renderMathInElement){
-    renderMathInElement(document.body,{
-      delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}],
-      throwOnError:false
-    });
-  }
 }
-window.renderMath=()=>renderMath(null);
 
 // ── History ───────────────────────────────────────────────────────────────────
 function addHistory(s){
