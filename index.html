@@ -6,7 +6,7 @@ layout: null
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-<title>Demo: Rede Neural MLP — Aprendizado Passo a Passo</title>
+<title>Rede Neural MLP — Aprendizado Passo a Passo</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css"/>
 <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.js"></script>
 <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/contrib/auto-render.min.js"
@@ -168,6 +168,7 @@ h1{font-size:1.6rem;font-weight:700;color:var(--text);margin-bottom:4px}
 
 <h1>Rede Neural MLP</h1>
 <p class="sub">Matemática passo a passo: forward pass · backpropagation · 6 funções de ativação · loss landscape</p>
+<p class="sub">Repositório: https://github.com/samuel-sanches-BR/Multilayer-Perceptron_Simples</p>
 
 <!-- Loading -->
 <div class="card" id="loading-card">
@@ -287,7 +288,7 @@ h1{font-size:1.6rem;font-weight:700;color:var(--text);margin-bottom:4px}
 <div id="progress-bar-wrap">
   <div class="prog-inner">
     <div class="prog-track"><div class="prog-fill" id="prog-fill" style="width:0%"></div></div>
-    <span class="prog-label" id="prog-label">Passo 0 de 8</span>
+    <span class="prog-label" id="prog-label">Passo 0 de 7</span>
     <button class="btn btn-skip" id="btn-skip-all" onclick="skipToEnd()">⏭ Pular ao final</button>
     <span class="prog-back" onclick="resetAll()">← reconfigurar</span>
   </div>
@@ -427,7 +428,7 @@ function revealStep(n,noScroll){
   const spanNum=document.createElement('span');
   spanNum.className='step-num';
   // Color the step number
-  const orange_steps=[4,5]; // backprop + loss landscape
+  const orange_steps=[4]; // backprop
   if(orange_steps.includes(n)) spanNum.classList.add('orange');
   else if(n===1) spanNum.classList.add('purple');
   spanNum.textContent=n;
