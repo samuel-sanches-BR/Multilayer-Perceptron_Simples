@@ -1043,34 +1043,7 @@ def nn_run_all(X_s,Y_s,lr_s,w1_0,w1_1,w2_00,w2_01,w2_10,w2_11,w3_0,w3_1,epochs_s
 
         # ── Preenche o Loss Landscape (passo 4) ───────────────────────────────
         landscape_img=plot_loss_landscape(X,Y,W1_init,W2_init,hist_w3,act_fn,act_name)
-        steps[landscape_placeholder_idx]={
-            "title":"Loss Landscape — A Superfície do Erro",
-            "sections":[
-                {"type":"text","content":
-                 "Antes de entender o backpropagation, vale visualizar o problema: "
-                 "onde estamos no espaço do erro? "
-                 "Este mapa mostra como o MSE varia conforme mudamos apenas W3[0] e W3[1], "
-                 "mantendo W1 e W2 fixos nos valores iniciais."},
-                {"type":"img","content":landscape_img},
-                {"type":"text","content":
-                 "Cada ponto no mapa é uma configuração diferente de W3. "
-                 "Cores escuras (verde) = erro baixo (vales, mínimos). "
-                 "Cores claras (vermelho) = erro alto (picos, planaltos). "
-                 "A linha tracejada branca é a trajetória percorrida durante o treinamento — "
-                 "o algoritmo navega essa superfície descendo sempre na direção de maior declive (gradiente negativo)."},
-                {"type":"highlight","content":
-                 "⚠ Este é um corte 2D de um espaço 8-dimensional (8 pesos). "
-                 "Na realidade, W1 e W2 também se movem simultaneamente, "
-                 "mas este slice já revela o conceito: existem vales, planaltos, e às vezes mínimos locais.",
-                 "variant":"orange"},
-                {"type":"text","content":
-                 "Por que o landscape tem essa forma? A saída ŷ = σ(hB · W3) é uma função sigmoid — "
-                 "suave e limitada em (0,1). O erro E = ½(y−ŷ)² é então uma superfície convexa "
-                 "em relação a W3 (se W1 e W2 fossem fixos). "
-                 "Isso significa que, para W3 isolado, existe um único mínimo global."},
-            ]
-        }
-
+        
         # ── Injeta no Estado Final: landscape + variação total dos pesos ─────
         estado_final_secs=steps[-1]['sections']
         estado_final_secs.append({
