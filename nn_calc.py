@@ -468,7 +468,7 @@ def nn_run_all(X_s,Y_s,lr_s,w1_0,w1_1,w2_00,w2_01,w2_10,w2_11,w3_0,w3_1,epochs_s
              "Valores diferentes quebram essa simetria e permitem especialização."},
             {"type":"subtitle","content":"O que cada matriz conecta"},
             {"type":"table","headers":["Matriz","Dimensão","Conecta","Interpretação"],"rows":[
-                ["W1","1 × 2","X → Oculta A",
+                ["W1","1 × 2","X → Oculta    A",
                  f"W1[0]={w1_0} escala X para hA1;  W1[1]={w1_1} escala X para hA2"],
                 ["W2","2 × 2","Oculta A → Oculta B",
                  "Cada coluna combina hA1 e hA2 para produzir um neurônio de hB"],
