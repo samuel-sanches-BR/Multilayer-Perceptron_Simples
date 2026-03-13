@@ -551,35 +551,35 @@ def _dact_expand(act_key, zv, dv, label='z'):
     zv=float(zv); dv=float(dv)
     if act_key=='sigmoid':
         sv=float(sigmoid(np.array([zv]))[0])
-        return (f"f'({label})=\\sigma({label})(1-\\sigma({label}))="
+        return (f" f'({label})=\\sigma({label})(1-\\sigma({label}))="
                 +f"\\sigma({zv:.4f})\\,(1-\\sigma({zv:.4f}))={sv:.4f}\\times{1-sv:.4f}={dv:.4f}")
     elif act_key=='relu':
         cmp=r">" if zv>0 else r"\leq"
         val="1" if zv>0 else "0"
-        return (f"f'({label})=\\mathbf{{1}}[{label}>0]:"
+        return (f" f'({label})=\\mathbf{{1}}[{label}>0]:"
                 +f"\\quad {zv:.4f}{cmp}0\\;\\Rightarrow\\; f'={val}={dv:.4f}")
     elif act_key=='tanh':
         tv=float(np.tanh(zv))
-        return (f"f'({label})=1-\\tanh^2({label})="
+        return (f" f'({label})=1-\\tanh^2({label})="
                 +f"1-\\tanh^2({zv:.4f})=1-{tv**2:.4f}={dv:.4f}")
     elif act_key=='leaky_relu':
         cmp=r">" if zv>0 else r"\leq"
         val="1" if zv>0 else str(LEAKY_ALPHA)
-        return (f"f'({label})=\\{{1\\;\\text{{ou}}\\;\\alpha\\}}:"
+        return (f" f'({label})=\\{{1\\;\\text{{ou}}\\;\\alpha\\}}:"
                 +f"\\quad {zv:.4f}{cmp}0\\;\\Rightarrow\\; f'={val}={dv:.4f}")
     elif act_key=='elu':
         if zv>0:
-            return (f"f'({label})=1\\;(z>0):"
+            return (f" f'({label})=1\\;(z>0):"
                     +f"\\quad {zv:.4f}>0\\;\\Rightarrow\\; f'=1={dv:.4f}")
         else:
             exp_val=float(np.exp(np.clip(zv,-500,0)))
-            return (f"f'({label})=\\alpha e^{{{label}}}\\;(z\\leq0):"
+            return (f" f'({label})=\\alpha e^{{{label}}}\\;(z\\leq0):"
                     +f"\\quad {ELU_ALPHA}\\times e^{{{zv:.4f}}}={ELU_ALPHA}\\times{exp_val:.4f}={dv:.4f}")
     elif act_key=='swish':
         sv=float(sigmoid(np.array([zv]))[0])
-        return (f"f'({label})=\\sigma({label})+{label}\\cdot\\sigma({label})(1-\\sigma({label}))="
+        return (f" f'({label})=\\sigma({label})+{label}\\cdot\\sigma({label})(1-\\sigma({label}))="
                 +f"{sv:.4f}+({zv:.4f}\\times{sv:.4f}\\times{1-sv:.4f})={dv:.4f}")
-    return f"f'({label})={dv:.4f}"
+    return f" f'({label})={dv:.4f}"
 
 
 # ── Diagrama estático da arquitetura (sem pesos/valores) ──────────────────────
